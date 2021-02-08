@@ -25,6 +25,8 @@ bottom = screen_height - top
 middle_x = screen_width / 2
 middle_y = screen_height / 2
 center = (middle_x, middle_y)
+h = abs(top - bottom)
+w = abs(left - right)
 # Player control
 player_up = False
 player_down = False
@@ -37,7 +39,6 @@ class Ball():
         self.body.velocity = 5, -10
         self.radius = 10
         self.shape = pymunk.Circle(self.body, self.radius)
-        self.shape.friction = 1
         self.shape.density = 1
         self.shape.elasticity = 1
         space.add(self.body, self.shape)
@@ -45,7 +46,10 @@ class Ball():
     def draw(self):
         x, y = self.body.position
         pygame.draw.circle(screen, color_ball, (int(x), int(y)), self.radius)
-
+    def reset(self, space, arbiter, data):
+        self.body.position = center
+        self.body.velocity = 5, -10
+        return False
 class Wall():
     def __init__(self, p1 ,p2, collision_number = None):
         self.body = pymunk.Body(body_type = pymunk.Body.STATIC)
@@ -55,8 +59,8 @@ class Wall():
         if collision_number:
             self.shape.collision_type = collision_number
 
-    def draw(self):
-        pygame.draw.line(screen, color_line, self.shape.a, self.shape.b, 5)
+    def draw(self, color = color_line, width = 5):
+        pygame.draw.line(screen, color, self.shape.a, self.shape.b, width)
 class Player():
     def __init__(self, position_x):
         self.body = pymunk.Body(body_type = pymunk.Body.KINEMATIC)
@@ -102,6 +106,11 @@ def airhockey():
     wall_right = Wall([right, top], [right, bottom])
     wall_top = Wall([left, top], [right, top])
     wall_bottom = Wall([left, bottom], [right, bottom])
+    # Score
+    score_1 = Wall([right, top + h/3], [right, bottom - h/3], 2)
+    score_2 = Wall([left, top + h/3], [left, bottom - h/3], 2)
+    scored = space.add_collision_handler(1, 2)
+    scored.begin = ball.reset
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -133,6 +142,9 @@ def airhockey():
         player_1.draw()
         player_2.draw()
         pygame.draw.aaline(screen, color_line, (screen_width / 2, 0), (screen_width / 2, screen_height))
+        # Score
+        score_1.draw(color=color_score, width=10)
+        score_2.draw(color=color_score, width=10)
         # Update
         pygame.display.flip()
         space.step(1/FPS)
