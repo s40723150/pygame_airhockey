@@ -62,13 +62,21 @@ class Wall():
     def draw(self, color = color_line, width = 5):
         pygame.draw.line(screen, color, self.shape.a, self.shape.b, width)
 class Player():
-    def __init__(self, position_x):
+    def __init__(self, position_x, active_area = "ALL"):
+        active_areas = ("ALL", "LEFT", "RIGHT")
         self.body = pymunk.Body(body_type = pymunk.Body.KINEMATIC)
         self.body.position = position_x, middle_y
         self.radius = 15
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.elasticity = 1
         space.add(self.body, self.shape)
+        if active_area == active_areas[0]:
+            self.move_area = 0
+        elif active_area == active_areas[1]:
+            self.move_area = 1
+        elif active_area == active_areas[2]:
+            self.move_area = 2
+
     def draw(self):
         pygame.draw.circle(screen, color_payer, self.body.position, self.radius)
     def move(self, direction):
@@ -76,6 +84,7 @@ class Player():
         x, y = self.body.position
         directions = ("UP", "DOWN", "LEFT", "RIGHT")
         velocity = 20
+
         if direction == directions[0]:
             self.body.velocity = v_x, -velocity
         if direction == directions[1]:
@@ -85,14 +94,25 @@ class Player():
         if direction == directions[3]:
             self.body.velocity = velocity, v_y
         # Active area
-        if y <= top + self.radius and direction == directions[0]:
-            self.body.velocity = v_x, 0
-        if y >= bottom - self.radius and direction == directions[1]:
-            self.body.velocity = v_x, 0
-        if x <= middle_x + self.radius and direction == directions[2]:
-            self.body.velocity = 0,v_y
-        if x >= right - self.radius and direction == directions[3]:
-            self.body.velocity = 0, v_y
+        if self.move_area == 1:
+            if y <= top + self.radius and direction == directions[0]:
+                self.body.velocity = v_x, 0
+            if y >= bottom - self.radius and direction == directions[1]:
+                self.body.velocity = v_x, 0
+            if x <= left+ self.radius and direction == directions[2]:
+                self.body.velocity = 0, v_y
+            if x >= middle_x - self.radius and direction == directions[3]:
+                self.body.velocity = 0, v_y
+        elif self.move_area == 2:
+            if y <= top + self.radius and direction == directions[0]:
+                self.body.velocity = v_x, 0
+            if y >= bottom - self.radius and direction == directions[1]:
+                self.body.velocity = v_x, 0
+            if x <= middle_x + self.radius and direction == directions[2]:
+                self.body.velocity = 0, v_y
+            if x >= right - self.radius and direction == directions[3]:
+                self.body.velocity = 0, v_y
+
     def stop(self):
         self.body.velocity = 0, 0
 
@@ -100,8 +120,8 @@ def airhockey():
     global mouse_trigger, quit_game
     quit_game = False
     ball = Ball()
-    player_1 = Player(left+15)
-    player_2 = Player(right-15)
+    player_1 = Player(left+15, "LEFT")
+    player_2 = Player(right-15, "RIGHT")
     wall_left = Wall([left, top], [left, bottom])
     wall_right = Wall([right, top], [right, bottom])
     wall_top = Wall([left, top], [right, top])
@@ -118,8 +138,24 @@ def airhockey():
                 sys.exit()
         # Control player
         key = pygame.key.get_pressed()
+        # Player 1
+        if key[pygame.K_w]:
+            print("up")
+            player_1.move("UP")
+        else:
+            player_1.stop()
+        if key[pygame.K_s]:
+            #print("down")
+            player_1.move("DOWN")
+        if key[pygame.K_a]:
+            #print("left")
+            player_1.move("LEFT")
+        if key[pygame.K_d]:
+            #print("right")
+            player_1.move("RIGHT")
+        # Player 2
         if key[pygame.K_UP]:
-            #print("up")
+            # print("up")
             player_2.move("UP")
         else:
             player_2.stop()
@@ -132,6 +168,8 @@ def airhockey():
         if key[pygame.K_RIGHT]:
             #print("right")
             player_2.move("RIGHT")
+
+
         # Draw object
         screen.fill(color_bg)
         wall_left.draw()
