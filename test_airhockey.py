@@ -14,8 +14,9 @@ pygame.display.set_caption(window_name)
 # Color
 color_bg = (50, 60, 50)
 color_ball = (190, 200, 230)
-color_payer = (180, 125, 160)
+color_payer = (240, 250, 10)
 color_line = (210, 190, 189)
+color_score = (240, 20, 20)
 # Window collide area
 left = 3
 right = screen_width - left
@@ -57,10 +58,9 @@ class Wall():
     def draw(self):
         pygame.draw.line(screen, color_line, self.shape.a, self.shape.b, 5)
 class Player():
-    def __init__(self):
+    def __init__(self, position_x):
         self.body = pymunk.Body(body_type = pymunk.Body.KINEMATIC)
-        self.body.position = right-25, middle_y
-
+        self.body.position = position_x, middle_y
         self.radius = 15
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.elasticity = 1
@@ -93,10 +93,11 @@ class Player():
         self.body.velocity = 0, 0
 
 def airhockey():
-    global mouse_trigger,player_up, player_down, player_left, player_right, quit_game
+    global mouse_trigger, quit_game
     quit_game = False
     ball = Ball()
-    player = Player()
+    player_1 = Player(left+15)
+    player_2 = Player(right-15)
     wall_left = Wall([left, top], [left, bottom])
     wall_right = Wall([right, top], [right, bottom])
     wall_top = Wall([left, top], [right, top])
@@ -110,18 +111,18 @@ def airhockey():
         key = pygame.key.get_pressed()
         if key[pygame.K_UP]:
             #print("up")
-            player.move("UP")
+            player_2.move("UP")
         else:
-            player.stop()
+            player_2.stop()
         if key[pygame.K_DOWN]:
             #print("down")
-            player.move("DOWN")
+            player_2.move("DOWN")
         if key[pygame.K_LEFT]:
             #print("left")
-            player.move("LEFT")
+            player_2.move("LEFT")
         if key[pygame.K_RIGHT]:
             #print("right")
-            player.move("RIGHT")
+            player_2.move("RIGHT")
         # Draw object
         screen.fill(color_bg)
         wall_left.draw()
@@ -129,7 +130,8 @@ def airhockey():
         wall_top.draw()
         wall_bottom.draw()
         ball.draw()
-        player.draw()
+        player_1.draw()
+        player_2.draw()
         pygame.draw.aaline(screen, color_line, (screen_width / 2, 0), (screen_width / 2, screen_height))
         # Update
         pygame.display.flip()
