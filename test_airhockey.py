@@ -1,4 +1,4 @@
-import pygame, pymunk, sys
+import pygame, pymunk, sys, random
 # Initial setting
 pygame.init()
 clock = pygame.time.Clock()
@@ -17,26 +17,28 @@ color_ball = (190, 200, 230)
 color_payer = (240, 250, 10)
 color_line = (210, 190, 189)
 color_score = (240, 20, 20)
+color_text = (240, 20, 20)
 # Window collide area
-left = 3
+left = 20
 right = screen_width - left
-top = 3
-bottom = screen_height - top
+top = 30
+bottom = screen_height - left
 middle_x = screen_width / 2
 middle_y = screen_height / 2
 center = (middle_x, middle_y)
 h = abs(top - bottom)
 w = abs(left - right)
-# Player control
-player_up = False
-player_down = False
-player_left = False
-player_right = False
+def print_text(text, x, y = 5, color = color_text):
+    font = pygame.font.Font("freesansbold.ttf", 32)
+    surface = font.render(text, True, color)
+    screen.blit(surface, (x, y))
+
+
 class Ball():
     def __init__(self):
         self.body = pymunk.Body()
         self.body.position = center
-        self.body.velocity = 5, -10
+        self.body.velocity = 65, -60
         self.radius = 10
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.density = 1
@@ -46,10 +48,12 @@ class Ball():
     def draw(self):
         x, y = self.body.position
         pygame.draw.circle(screen, color_ball, (int(x), int(y)), self.radius)
-    def reset(self, space, arbiter, data):
+    def reset(self, space = 0, arbiter = 0, data = 0):
         self.body.position = center
-        self.body.velocity = 5, -10
+        self.body.velocity = 15 * random.choice((1, -1)), -10* random.choice((1, -1))
         return False
+    def standarize_velocity(self, space = 0, arbiter = 0, data = 0):
+        self.body.velocity = self.body.velocity*(50/self.body.velocity.length)
 class Wall():
     def __init__(self, p1 ,p2, collision_number = None):
         self.body = pymunk.Body(body_type = pymunk.Body.STATIC)
@@ -70,6 +74,9 @@ class Player():
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.elasticity = 1
         space.add(self.body, self.shape)
+        self.shape.collision_type = 100
+        self.score = 0
+
         if active_area == active_areas[0]:
             self.move_area = 0
         elif active_area == active_areas[1]:
@@ -83,8 +90,7 @@ class Player():
         v_x, v_y = self.body.velocity
         x, y = self.body.position
         directions = ("UP", "DOWN", "LEFT", "RIGHT")
-        velocity = 20
-
+        velocity = 70
         if direction == directions[0]:
             self.body.velocity = v_x, -velocity
         if direction == directions[1]:
@@ -112,25 +118,43 @@ class Player():
                 self.body.velocity = 0, v_y
             if x >= right - self.radius and direction == directions[3]:
                 self.body.velocity = 0, v_y
-
     def stop(self):
         self.body.velocity = 0, 0
 
+
+
+
 def airhockey():
-    global mouse_trigger, quit_game
-    quit_game = False
     ball = Ball()
-    player_1 = Player(left+15, "LEFT")
-    player_2 = Player(right-15, "RIGHT")
     wall_left = Wall([left, top], [left, bottom])
     wall_right = Wall([right, top], [right, bottom])
     wall_top = Wall([left, top], [right, top])
     wall_bottom = Wall([left, bottom], [right, bottom])
+    # Player
+    player_1 = Player(left+15, "LEFT")
+    player_2 = Player(right-15, "RIGHT")
+
+    contact_with_player = space.add_collision_handler(1, 100)
+    contact_with_player.post_solve = ball.standarize_velocity
     # Score
-    score_1 = Wall([right, top + h/3], [right, bottom - h/3], 2)
-    score_2 = Wall([left, top + h/3], [left, bottom - h/3], 2)
-    scored = space.add_collision_handler(1, 2)
-    scored.begin = ball.reset
+    score_1 = Wall([right, top + h/3], [right, bottom - h/3], 101)
+    score_2 = Wall([left, top + h/3], [left, bottom - h/3], 102)
+    scored_1 = space.add_collision_handler(1, 101)
+    scored_2 = space.add_collision_handler(1, 102)
+
+    def player1_scored(space, arbiter, data):
+        player_1.score += 1
+        print(player_1.score)
+        ball.reset()
+        return False
+    scored_1.begin = player1_scored
+
+    def player2_scored(space, arbiter, data):
+        player_2.score += 1
+        ball.reset()
+        return False
+    scored_2.begin = player2_scored
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -140,7 +164,7 @@ def airhockey():
         key = pygame.key.get_pressed()
         # Player 1
         if key[pygame.K_w]:
-            print("up")
+            #print("up")
             player_1.move("UP")
         else:
             player_1.stop()
@@ -179,7 +203,9 @@ def airhockey():
         ball.draw()
         player_1.draw()
         player_2.draw()
-        pygame.draw.aaline(screen, color_line, (screen_width / 2, 0), (screen_width / 2, screen_height))
+        pygame.draw.line(screen, color_line, (screen_width / 2, top), (screen_width / 2, bottom))
+        print_text(f"P1 : {player_1.score}", left)
+        print_text(f"P2 : {player_2.score}", right-90)
         # Score
         score_1.draw(color=color_score, width=10)
         score_2.draw(color=color_score, width=10)
